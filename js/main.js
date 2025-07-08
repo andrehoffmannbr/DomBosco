@@ -25,8 +25,8 @@ window.deleteIntern = deleteIntern; // Make delete intern global
 window.deleteGeneralDocument = deleteGeneralDocument; // Make delete general document global
 
 // Initialize application
-document.addEventListener('DOMContentLoaded', () => {
-    loadDb();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDb();
     
     // Check if user is already logged in
     if (checkLogin()) {
@@ -656,7 +656,7 @@ function saveNewAttendance() {
     showNotification('Atendimento salvo com sucesso!', 'success');
 }
 
-function saveCancellation() {
+async function saveCancellation() {
     const schedule = db.schedules.find(s => s.id === window.currentCancellingScheduleId);
     if (!schedule) return;
 
@@ -675,11 +675,11 @@ function saveCancellation() {
 
     if (imageFile) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             schedule.cancelImage = e.target.result;
             schedule.cancelImageName = imageFile.name;
             
-            saveDb();
+            await saveDb();
             document.getElementById('form-cancelar-agendamento').reset();
             document.getElementById('preview-imagem-cancelamento').style.display = 'none';
             document.getElementById('modal-cancelar-agendamento').style.display = 'none';
@@ -689,7 +689,7 @@ function saveCancellation() {
         };
         reader.readAsDataURL(imageFile);
     } else {
-        saveDb();
+        await saveDb();
         document.getElementById('form-cancelar-agendamento').reset();
         document.getElementById('modal-cancelar-agendamento').style.display = 'none';
         renderSchedule(document.getElementById('date-selector').value);
@@ -810,13 +810,13 @@ function saveAttendanceConfirmation() {
         finalizeConfirmation();
     }
 
-    function finalizeConfirmation() {
+    async function finalizeConfirmation() {
         client.appointments.push(newAppointment);
         schedule.status = 'concluido';
         schedule.confirmedAt = new Date().toISOString();
         schedule.attendanceId = newAppointment.id;
 
-        saveDb();
+        await saveDb();
         
         document.getElementById('form-confirmar-atendimento').reset();
         document.getElementById('modal-confirmar-atendimento').style.display = 'none';
@@ -883,7 +883,7 @@ function addMaterialSelection() {
     container.appendChild(selectionDiv);
 }
 
-function addStockItem() {
+async function addStockItem() {
     const name = document.getElementById('stock-item-name').value.trim();
     const category = document.getElementById('stock-item-category').value;
     const quantity = parseInt(document.getElementById('stock-item-quantity').value);
@@ -924,7 +924,7 @@ function addStockItem() {
         itemUnitValue: newItem.unitValue // Record the unit value at time of movement
     });
 
-    saveDb();
+    await saveDb();
     
     document.getElementById('form-add-stock').reset();
     document.getElementById('modal-add-stock').style.display = 'none';
@@ -937,7 +937,7 @@ function addStockItem() {
     showNotification('Item adicionado ao estoque com sucesso!', 'success');
 }
 
-function processStockAdjustment() {
+async function processStockAdjustment() {
     const { itemId, action } = window.currentStockAdjustment;
     const item = db.stockItems.find(item => item.id === itemId);
     if (!item) return;
@@ -974,7 +974,7 @@ function processStockAdjustment() {
         itemUnitValue: item.unitValue // Record the unit value at time of movement
     });
     
-    saveDb();
+    await saveDb();
     
     // Close modal and refresh views
     document.getElementById('modal-adjust-stock').style.display = 'none';
@@ -1101,7 +1101,7 @@ function renderGeneralDocuments(filter = '', typeFilter = '') {
     });
 }
 
-function addGeneralDocument() {
+async function addGeneralDocument() {
     const title = document.getElementById('general-document-title').value.trim();
     const type = document.getElementById('general-document-type').value;
     const description = document.getElementById('general-document-description').value.trim();
@@ -1121,7 +1121,7 @@ function addGeneralDocument() {
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         if (!db.generalDocuments) {
             db.generalDocuments = [];
         }
@@ -1139,7 +1139,7 @@ function addGeneralDocument() {
         };
 
         db.generalDocuments.push(newDocument);
-        saveDb();
+        await saveDb();
         
         document.getElementById('modal-add-general-document').style.display = 'none';
         document.getElementById('form-add-general-document').reset();
@@ -1154,7 +1154,7 @@ function addGeneralDocument() {
     reader.readAsDataURL(file);
 }
 
-function addGeneralNote() {
+async function addGeneralNote() {
     const title = document.getElementById('general-note-title').value.trim();
     const type = document.getElementById('general-note-type').value;
     const content = document.getElementById('general-note-content').value.trim();
@@ -1179,7 +1179,7 @@ function addGeneralNote() {
     };
 
     db.generalDocuments.push(newNote);
-    saveDb();
+    await saveDb();
     
     document.getElementById('modal-add-general-note').style.display = 'none';
     document.getElementById('form-add-general-note').reset();
@@ -1187,7 +1187,7 @@ function addGeneralNote() {
     showNotification('Nota adicionada com sucesso!', 'success');
 }
 
-function deleteGeneralDocument(documentId) {
+async function deleteGeneralDocument(documentId) {
     if (!confirm('Tem certeza que deseja excluir este item?')) return;
     
     if (!db.generalDocuments) return;
@@ -1196,7 +1196,7 @@ function deleteGeneralDocument(documentId) {
     if (docIndex !== -1) {
         const deletedDoc = db.generalDocuments[docIndex];
         db.generalDocuments.splice(docIndex, 1);
-        saveDb();
+        await saveDb();
         renderGeneralDocuments();
         showNotification(`${deletedDoc.documentType === 'note' ? 'Nota' : 'Documento'} excluído com sucesso!`, 'success');
     }

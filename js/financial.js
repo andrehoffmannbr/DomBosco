@@ -1,6 +1,8 @@
 // Financial reporting module
-import { db } from './database.js';
+import { db, saveDb } from './database.js';
 import { getCurrentUser } from './auth.js';
+import { showNotification } from './ui.js';
+import { supabase, supabaseUtils } from './supabase-config.js';
 
 export function renderFinancialReport(selectedMonthYear = null) {
     const currentUser = getCurrentUser();
@@ -213,7 +215,7 @@ export function renderDailyNotes(selectedMonthYear = null) {
     });
 }
 
-export function addDailyNote() {
+export async function addDailyNote() {
     const date = document.getElementById('daily-note-date').value;
     const title = document.getElementById('daily-note-title').value.trim();
     const type = document.getElementById('daily-note-type').value;
@@ -251,12 +253,12 @@ export function addDailyNote() {
         }
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             newNote.fileName = file.name;
             newNote.fileData = e.target.result;
             
             db.dailyNotes.push(newNote);
-            saveDb();
+            await saveDb();
             
             document.getElementById('form-add-daily-note').reset();
             document.getElementById('modal-add-daily-note').style.display = 'none';
@@ -275,7 +277,7 @@ export function addDailyNote() {
         reader.readAsDataURL(file);
     } else {
         db.dailyNotes.push(newNote);
-        saveDb();
+        await saveDb();
         
         document.getElementById('form-add-daily-note').reset();
         document.getElementById('modal-add-daily-note').style.display = 'none';
@@ -288,11 +290,11 @@ export function addDailyNote() {
     }
 }
 
-export function deleteDailyNote(noteId) {
+export async function deleteDailyNote(noteId) {
     if (!confirm('Tem certeza que deseja excluir esta nota?')) return;
     
     db.dailyNotes = db.dailyNotes.filter(note => note.id !== noteId);
-    saveDb();
+    await saveDb();
     
     const selectedMonth = document.getElementById('financial-month-selector').value;
     renderDailyNotes(selectedMonth);

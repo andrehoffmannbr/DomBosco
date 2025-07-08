@@ -2,6 +2,7 @@
 import { db, saveDb } from './database.js';
 import { getCurrentUser } from './auth.js';
 import { showNotification } from './ui.js';
+import { supabase, supabaseUtils } from './supabase-config.js';
 
 // Helper function to calculate age from birth date
 function calculateAge(birthDateString) {
@@ -214,7 +215,7 @@ function renderClientDocuments(documents) {
     });
 }
 
-export function addClientNote() {
+export async function addClientNote() {
     const client = db.clients.find(c => c.id === window.currentClientId);
     if (!client) return;
 
@@ -238,13 +239,13 @@ export function addClientNote() {
         author: getCurrentUser().name
     });
 
-    saveDb();
+    await saveDb();
     document.getElementById('modal-add-note').style.display = 'none';
     showClientDetails(window.currentClientId);
     showNotification('Nota adicionada com sucesso!', 'success');
 }
 
-export function addClientDocument() {
+export async function addClientDocument() {
     const client = db.clients.find(c => c.id === window.currentClientId);
     if (!client) return;
 
@@ -267,7 +268,7 @@ export function addClientDocument() {
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         if (!client.documents) {
             client.documents = [];
         }
@@ -283,7 +284,7 @@ export function addClientDocument() {
             uploadedBy: getCurrentUser().name
         });
 
-        saveDb();
+        await saveDb();
         document.getElementById('modal-add-document').style.display = 'none';
         document.getElementById('form-add-document').reset();
         showClientDetails(window.currentClientId);
@@ -297,12 +298,12 @@ export function addClientDocument() {
     reader.readAsDataURL(file);
 }
 
-export function deleteClientDocument(documentId) {
+export async function deleteClientDocument(documentId) {
     const client = db.clients.find(c => c.id === window.currentClientId);
     if (!client || !client.documents) return;
 
     client.documents = client.documents.filter(doc => doc.id !== documentId);
-    saveDb();
+    await saveDb();
     showClientDetails(window.currentClientId);
     showNotification('Documento excluído com sucesso!', 'success');
 }

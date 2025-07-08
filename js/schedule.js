@@ -2,6 +2,7 @@
 import { db, saveDb } from './database.js';
 import { getCurrentUser } from './auth.js';
 import { showNotification } from './ui.js';
+import { supabase, supabaseUtils } from './supabase-config.js';
 
 export function renderSchedule(selectedDate = null) {
     const agendaList = document.getElementById('agenda-list');
@@ -104,7 +105,7 @@ export function renderSchedule(selectedDate = null) {
     });
 }
 
-export function updateScheduleStatus(scheduleId, newStatus) {
+export async function updateScheduleStatus(scheduleId, newStatus) {
     const schedule = db.schedules.find(s => s.id === scheduleId);
     if (schedule) {
         if (newStatus === 'confirmado') {
@@ -145,7 +146,7 @@ export function updateScheduleStatus(scheduleId, newStatus) {
             document.getElementById('modal-confirmar-atendimento').style.display = 'flex';
         } else {
             schedule.status = newStatus;
-            saveDb();
+            await saveDb();
             renderSchedule(document.getElementById('date-selector').value);
             showNotification(`Status do agendamento atualizado para ${newStatus}.`, 'success');
         }
@@ -236,7 +237,7 @@ function populateEditServiceTypeOptions() {
     });
 }
 
-export function saveEditedSchedule() {
+export async function saveEditedSchedule() {
     const schedule = db.schedules.find(s => s.id === window.currentEditingScheduleId);
     if (!schedule) return;
     
@@ -257,7 +258,7 @@ export function saveEditedSchedule() {
     schedule.serviceType = serviceType;
     schedule.observations = observations;
 
-    saveDb();
+    await saveDb();
     
     document.getElementById('modal-editar-agendamento').style.display = 'none';
     renderSchedule(document.getElementById('date-selector').value);
@@ -397,7 +398,7 @@ export function reassignSchedule(scheduleId) {
     document.getElementById('modal-reassign-schedule').style.display = 'flex';
 }
 
-export function saveReassignedSchedule() {
+export async function saveReassignedSchedule() {
     const schedule = db.schedules.find(s => s.id === window.currentReassigningScheduleId);
     if (!schedule) {
         showNotification('Erro: Agendamento não encontrado.', 'error');
@@ -415,7 +416,7 @@ export function saveReassignedSchedule() {
     schedule.assignedToUserId = newAssignedUserId;
     schedule.assignedToUserName = newAssignedUser.name;
 
-    saveDb();
+    await saveDb();
     document.getElementById('modal-reassign-schedule').style.display = 'none';
     renderSchedule(document.getElementById('date-selector').value);
     showNotification('Agendamento redirecionado com sucesso!', 'success');

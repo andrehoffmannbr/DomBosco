@@ -3,6 +3,7 @@ import { db, saveDb } from './database.js';
 import { renderClientList } from './clients.js';
 import { switchTab } from './ui.js';
 import { showNotification } from './ui.js';
+import { supabase, supabaseUtils } from './supabase-config.js';
 
 export function setupFormHandlers() {
     setupAgeSelection();
@@ -79,7 +80,7 @@ async function handleCepInputMinor(e) {
 }
 
 function setupClientForms() {
-    document.getElementById('form-novo-cliente-adulto').addEventListener('submit', (e) => {
+    document.getElementById('form-novo-cliente-adulto').addEventListener('submit', async (e) => {
         e.preventDefault();
         const newClient = {
             id: db.nextClientId++,
@@ -107,13 +108,13 @@ function setupClientForms() {
             appointments: []
         };
         db.clients.push(newClient);
-        saveDb();
+        await saveDb();
         e.target.reset();
         renderClientList();
         switchTab('historico');
     });
 
-    document.getElementById('form-novo-cliente-menor').addEventListener('submit', (e) => {
+    document.getElementById('form-novo-cliente-menor').addEventListener('submit', async (e) => {
         e.preventDefault();
         const newClient = {
             id: db.nextClientId++,
@@ -145,7 +146,7 @@ function setupClientForms() {
             appointments: []
         };
         db.clients.push(newClient);
-        saveDb();
+        await saveDb();
         e.target.reset();
         renderClientList();
         switchTab('historico');
@@ -154,9 +155,9 @@ function setupClientForms() {
 
 function setupEditClientModal() {
     document.getElementById('btn-edit-client').addEventListener('click', showEditClientModal);
-    document.getElementById('form-editar-cliente').addEventListener('submit', (e) => {
+    document.getElementById('form-editar-cliente').addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveClientChanges();
+        await saveClientChanges();
     });
 }
 
@@ -332,7 +333,7 @@ function showEditClientModal() {
     document.getElementById('modal-editar-cliente').style.display = 'flex';
 }
 
-function saveClientChanges() {
+async function saveClientChanges() {
     const client = db.clients.find(c => c.id === window.currentClientId);
     if (!client) return;
 
@@ -395,7 +396,7 @@ function saveClientChanges() {
             changes: changes
         });
         
-        saveDb();
+        await saveDb();
         document.getElementById('modal-editar-cliente').style.display = 'none';
         showClientDetails(window.currentClientId);
         showNotification('Dados do cliente atualizados com sucesso!', 'success');

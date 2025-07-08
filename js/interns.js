@@ -2,6 +2,7 @@
 import { db, saveDb } from './database.js';
 import { showNotification } from './ui.js';
 import { getCurrentUser } from './auth.js';
+import { supabase, supabaseUtils } from './supabase-config.js';
 
 export function renderInternList(filter = '') {
     const internListContainer = document.getElementById('intern-list-container');
@@ -155,7 +156,7 @@ export function showEditInternModal(internId) {
     document.getElementById('modal-editar-estagiario').style.display = 'flex';
 }
 
-export function saveInternChanges() {
+export async function saveInternChanges() {
     const intern = db.users.find(u => u.id === window.currentInternId && u.role === 'intern');
     if (!intern) return;
 
@@ -203,7 +204,7 @@ export function saveInternChanges() {
             changes: changes
         });
         
-        saveDb();
+        await saveDb();
         document.getElementById('modal-editar-estagiario').style.display = 'none';
         showInternDetails(window.currentInternId); // Re-render details to show changes
         showNotification('Dados do estagiário atualizados com sucesso!', 'success');
@@ -214,7 +215,7 @@ export function saveInternChanges() {
     }
 }
 
-export function deleteIntern(internId) {
+export async function deleteIntern(internId) {
     const internToDelete = db.users.find(u => u.id === internId && u.role === 'intern');
     if (!internToDelete) {
         showNotification('Estagiário não encontrado.', 'error');
@@ -234,13 +235,13 @@ export function deleteIntern(internId) {
         }
     });
 
-    saveDb();
+    await saveDb();
     document.getElementById('modal-detalhes-estagiario').style.display = 'none'; // Close details modal
     renderInternList(); // Re-render the intern list
     showNotification(`Estagiário "${internName}" excluído com sucesso!`, 'success');
 }
 
-export function addIntern(internData) {
+export async function addIntern(internData) {
     // Check if username already exists
     if (db.users.some(u => u.username === internData.username)) {
         showNotification('Nome de usuário já existe. Por favor, escolha outro.', 'error');
@@ -255,7 +256,7 @@ export function addIntern(internData) {
     };
 
     db.users.push(newIntern);
-    saveDb();
+    await saveDb();
     showNotification(`Estagiário "${newIntern.name}" cadastrado com sucesso!`, 'success');
     return true;
 }

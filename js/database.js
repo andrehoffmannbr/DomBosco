@@ -1,4 +1,6 @@
-// Database module for neuropsychology system
+// Database module for neuropsychology system - Supabase version
+import { supabase, supabaseUtils } from './supabase-config.js';
+
 export const db = {
     clients: [],
     appointments: [],
@@ -46,113 +48,323 @@ export const db = {
     nextGeneralDocumentId: 1 // New ID counter for general documents
 };
 
-export function saveDb() {
-    localStorage.setItem('gestaoClientesDb', JSON.stringify(db));
+export async function saveDb() {
+    try {
+        // Salvar clientes
+        if (db.clients.length > 0) {
+            for (const client of db.clients) {
+                await supabaseUtils.insert('clients', {
+                    id: client.id,
+                    type: client.type,
+                    name: client.name,
+                    birth_date: client.birthDate,
+                    gender: client.gender,
+                    email: client.email,
+                    phone: client.phone,
+                    cpf: client.cpf,
+                    rg: client.rg,
+                    naturalidade: client.naturalidade,
+                    estado_civil: client.estadoCivil,
+                    escolaridade: client.escolaridade,
+                    profissao: client.profissao,
+                    contato_emergencia: client.contatoEmergencia,
+                    escola: client.escola,
+                    tipo_escola: client.tipoEscola,
+                    ano_escolar: client.anoEscolar,
+                    nome_pai: client.nomePai,
+                    idade_pai: client.idadePai,
+                    profissao_pai: client.profissaoPai,
+                    telefone_pai: client.telefonePai,
+                    nome_mae: client.nomeMae,
+                    idade_mae: client.idadeMae,
+                    profissao_mae: client.profissaoMae,
+                    telefone_mae: client.telefoneMae,
+                    responsavel_financeiro: client.responsavelFinanceiro,
+                    outro_responsavel: client.outroResponsavel,
+                    cep: client.cep,
+                    address: client.address,
+                    number: client.number,
+                    complement: client.complement,
+                    neighborhood: client.neighborhood,
+                    city: client.city,
+                    state: client.state,
+                    observations: client.observations
+                });
+            }
+        }
+
+        // Salvar agendamentos
+        if (db.schedules.length > 0) {
+            for (const schedule of db.schedules) {
+                await supabaseUtils.insert('schedules', {
+                    id: schedule.id,
+                    client_id: schedule.clientId,
+                    date: schedule.date,
+                    time: schedule.time,
+                    service_type: schedule.serviceType,
+                    status: schedule.status,
+                    assigned_to_user_id: schedule.assignedToUserId,
+                    assigned_to_user_name: schedule.assignedToUserName,
+                    observations: schedule.observations,
+                    cancel_reason: schedule.cancelReason,
+                    cancel_date: schedule.cancelDate,
+                    canceled_by: schedule.canceledBy,
+                    cancel_image: schedule.cancelImage
+                });
+            }
+        }
+
+        // Salvar atendimentos
+        if (db.appointments.length > 0) {
+            for (const appointment of db.appointments) {
+                await supabaseUtils.insert('appointments', {
+                    id: appointment.id,
+                    client_id: appointment.clientId,
+                    schedule_id: appointment.scheduleId,
+                    date: appointment.date,
+                    anamnesis_type_id: appointment.anamnesisTypeId,
+                    attended_by: appointment.attendedBy,
+                    intern_id: appointment.internId,
+                    notes: appointment.notes,
+                    value: appointment.value,
+                    materials_used: JSON.stringify(appointment.materialsUsed || [])
+                });
+            }
+        }
+
+        // Salvar movimentações de estoque
+        if (db.stockMovements.length > 0) {
+            for (const movement of db.stockMovements) {
+                await supabaseUtils.insert('stock_movements', {
+                    id: movement.id,
+                    item_id: movement.itemId,
+                    type: movement.type,
+                    quantity: movement.quantity,
+                    item_unit_value: movement.itemUnitValue,
+                    reason: movement.reason,
+                    date: movement.date,
+                    performed_by: movement.performedBy
+                });
+            }
+        }
+
+        // Salvar itens de estoque
+        if (db.stockItems.length > 0) {
+            for (const item of db.stockItems) {
+                await supabaseUtils.insert('stock_items', {
+                    id: item.id,
+                    name: item.name,
+                    category: item.category,
+                    quantity: item.quantity,
+                    min_stock: item.minStock,
+                    unit: item.unit,
+                    description: item.description,
+                    unit_value: item.unitValue
+                });
+            }
+        }
+
+        // Salvar notas diárias
+        if (db.dailyNotes.length > 0) {
+            for (const note of db.dailyNotes) {
+                await supabaseUtils.insert('daily_notes', {
+                    id: note.id,
+                    date: note.date,
+                    title: note.title,
+                    type: note.type,
+                    value: note.value,
+                    content: note.content,
+                    file_name: note.fileName,
+                    file_data: note.fileData,
+                    created_by: note.createdBy
+                });
+            }
+        }
+
+        console.log('Dados salvos no Supabase com sucesso');
+    } catch (error) {
+        console.error('Erro ao salvar no Supabase:', error);
+    }
 }
 
-export function loadDb() {
-    const storedDb = localStorage.getItem('gestaoClientesDb');
-    if (storedDb) {
-        const parsedDb = JSON.parse(storedDb);
-        
-        // Ensure new fields are present after loading old data
-        if (!parsedDb.schedules) parsedDb.schedules = [];
-        if (!parsedDb.dailyNotes) parsedDb.dailyNotes = []; // Ensure dailyNotes array exists
-        if (!parsedDb.nextDailyNoteId) parsedDb.nextDailyNoteId = 1; // Ensure counter exists
-        if (!parsedDb.generalDocuments) parsedDb.generalDocuments = []; // Ensure generalDocuments array exists
-        if (!parsedDb.nextGeneralDocumentId) parsedDb.nextGeneralDocumentId = 1; // Ensure counter exists
-        
-        parsedDb.schedules.forEach(schedule => {
-            if (schedule.assignedToUserId === undefined) {
-                schedule.assignedToUserId = null;
-                schedule.assignedToUserName = null;
-            }
-        });
-        
-        // Merge users to ensure new demo users are added if they don't exist
-        const defaultUsersMap = new Map(db.users.map(u => [u.id, u]));
-        parsedDb.users = parsedDb.users.map(u => {
-            const defaultUser = defaultUsersMap.get(u.id);
-            // Ensure changeHistory is preserved if it exists in parsedDb.users
-            const mergedUser = defaultUser ? { ...defaultUser, ...u } : u;
-            mergedUser.changeHistory = u.changeHistory || []; // Keep existing history or initialize empty
-            return mergedUser;
-        });
-        // Add new default users that might not be in parsedDb.users (e.g., if first load or new users added)
-        defaultUsersMap.forEach((defaultUser, id) => {
-            if (!parsedDb.users.some(u => u.id === id)) {
-                parsedDb.users.push({ ...defaultUser, changeHistory: [] }); // Add new users with empty history
-            }
-        });
-        
-        // Ensure all users have the new fields initialized (e.g., to empty string or empty array for history) if missing
-        parsedDb.users.forEach(user => {
-            user.address = user.address !== undefined ? user.address : '';
-            user.institution = user.institution !== undefined ? user.institution : '';
-            user.graduationPeriod = user.graduationPeriod !== undefined ? user.graduationPeriod : '';
-            user.education = user.education !== undefined ? user.education : '';
-            user.discipline = user.discipline !== undefined ? user.discipline : '';
-            user.phone = user.phone !== undefined ? user.phone : '';
-            user.email = user.email !== undefined ? user.email : '';
-            user.cpf = user.cpf !== undefined ? user.cpf : '';
-            user.changeHistory = user.changeHistory !== undefined ? user.changeHistory : []; // Initialize changeHistory
-        });
+export async function loadDb() {
+    try {
+        // Carregar clientes do Supabase
+        const { data: clients, error: clientsError } = await supabaseUtils.select('clients');
+        if (!clientsError && clients) {
+            db.clients = clients.map(client => ({
+                id: client.id,
+                type: client.type,
+                name: client.name,
+                birthDate: client.birth_date,
+                gender: client.gender,
+                email: client.email,
+                phone: client.phone,
+                cpf: client.cpf,
+                rg: client.rg,
+                naturalidade: client.naturalidade,
+                estadoCivil: client.estado_civil,
+                escolaridade: client.escolaridade,
+                profissao: client.profissao,
+                contatoEmergencia: client.contato_emergencia,
+                escola: client.escola,
+                tipoEscola: client.tipo_escola,
+                anoEscolar: client.ano_escolar,
+                nomePai: client.nome_pai,
+                idadePai: client.idade_pai,
+                profissaoPai: client.profissao_pai,
+                telefonePai: client.telefone_pai,
+                nomeMae: client.nome_mae,
+                idadeMae: client.idade_mae,
+                profissaoMae: client.profissao_mae,
+                telefoneMae: client.telefone_mae,
+                responsavelFinanceiro: client.responsavel_financeiro,
+                outroResponsavel: client.outro_responsavel,
+                cep: client.cep,
+                address: client.address,
+                number: client.number,
+                complement: client.complement,
+                neighborhood: client.neighborhood,
+                city: client.city,
+                state: client.state,
+                observations: client.observations,
+                appointments: [],
+                notes: [],
+                documents: []
+            }));
+        }
 
-        // Ensure stockItems have unitValue
-        if (!parsedDb.stockItems) parsedDb.stockItems = [];
-        parsedDb.stockItems.forEach(item => {
-            if (item.unitValue === undefined) {
-                item.unitValue = 0;
-            }
-        });
+        // Carregar agendamentos do Supabase
+        const { data: schedules, error: schedulesError } = await supabaseUtils.select('schedules');
+        if (!schedulesError && schedules) {
+            db.schedules = schedules.map(schedule => ({
+                id: schedule.id,
+                clientId: schedule.client_id,
+                date: schedule.date,
+                time: schedule.time,
+                serviceType: schedule.service_type,
+                status: schedule.status,
+                assignedToUserId: schedule.assigned_to_user_id,
+                assignedToUserName: schedule.assigned_to_user_name,
+                observations: schedule.observations,
+                cancelReason: schedule.cancel_reason,
+                cancelDate: schedule.cancel_date,
+                canceledBy: schedule.canceled_by,
+                cancelImage: schedule.cancel_image
+            }));
+        } else {
+            db.schedules = [];
+        }
 
-        // Ensure stockMovements have itemUnitValue
-        if (!parsedDb.stockMovements) parsedDb.stockMovements = [];
-        parsedDb.stockMovements.forEach(movement => {
-            if (movement.itemUnitValue === undefined) {
-                // Try to derive from stockItems if possible, otherwise default to 0
-                const relatedItem = parsedDb.stockItems.find(item => item.id === movement.itemId);
-                movement.itemUnitValue = relatedItem ? relatedItem.unitValue : 0;
-            }
-        });
+        // Carregar atendimentos do Supabase
+        const { data: appointments, error: appointmentsError } = await supabaseUtils.select('appointments');
+        if (!appointmentsError && appointments) {
+            db.appointments = appointments.map(appointment => ({
+                id: appointment.id,
+                clientId: appointment.client_id,
+                scheduleId: appointment.schedule_id,
+                date: appointment.date,
+                anamnesisTypeId: appointment.anamnesis_type_id,
+                attendedBy: appointment.attended_by,
+                internId: appointment.intern_id,
+                notes: appointment.notes,
+                value: appointment.value,
+                materialsUsed: appointment.materials_used ? JSON.parse(appointment.materials_used) : []
+            }));
+        } else {
+            db.appointments = [];
+        }
 
-        Object.assign(db, parsedDb);
+        // Carregar itens de estoque do Supabase
+        const { data: stockItems, error: stockItemsError } = await supabaseUtils.select('stock_items');
+        if (!stockItemsError && stockItems) {
+            db.stockItems = stockItems.map(item => ({
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                quantity: item.quantity,
+                minStock: item.min_stock,
+                unit: item.unit,
+                description: item.description,
+                unitValue: item.unit_value
+            }));
+        } else {
+            // Se não tem itens no Supabase, criar os itens de exemplo
+            const sampleStockItems = [
+                { id: 1, name: 'Lápis HB', category: 'papelaria', quantity: 50, minStock: 10, unit: 'unidade', description: 'Lápis para desenhos e escrita', unitValue: 1.50 },
+                { id: 2, name: 'Papel A4', category: 'papelaria', quantity: 25, minStock: 5, unit: 'resma', description: 'Papel branco para impressão', unitValue: 20.00 },
+                { id: 3, name: 'Teste WISC-IV', category: 'testes', quantity: 3, minStock: 1, unit: 'kit', description: 'Escala de Inteligência Wechsler para Crianças', unitValue: 800.00 },
+                { id: 4, name: 'Blocos de Madeira', category: 'brinquedos', quantity: 8, minStock: 2, unit: 'caixa', description: 'Blocos coloridos para atividades lúdicas', unitValue: 45.00 },
+                { id: 5, name: 'Quebra-cabeça 100 peças', category: 'jogos', quantity: 15, minStock: 3, unit: 'pacote', description: 'Quebra-cabeças diversos temas', unitValue: 30.00 }
+            ];
+            db.stockItems = sampleStockItems;
+        }
 
-        // Calculate nextUserId based on the highest existing user ID
-        const maxUserId = db.users.reduce((maxId, user) => Math.max(maxId, user.id), 0);
-        db.nextUserId = Math.max(db.nextUserId, maxUserId + 1);
+        // Carregar movimentações de estoque do Supabase
+        const { data: stockMovements, error: stockMovementsError } = await supabaseUtils.select('stock_movements');
+        if (!stockMovementsError && stockMovements) {
+            db.stockMovements = stockMovements.map(movement => ({
+                id: movement.id,
+                itemId: movement.item_id,
+                type: movement.type,
+                quantity: movement.quantity,
+                itemUnitValue: movement.item_unit_value,
+                reason: movement.reason,
+                date: movement.date,
+                performedBy: movement.performed_by
+            }));
+        } else {
+            db.stockMovements = [];
+        }
 
-        // Explicitly clear clients and appointments if they were loaded, as requested by the user
-        // This part needs to be reviewed as it seems to clear data unnecessarily on every load.
-        // It was part of a previous instruction to "clear all clients".
-        // If this is *not* intended to happen on every load, this block should be removed.
-        // Keeping it for now as per the given "current page" context.
+        // Carregar notas diárias do Supabase
+        const { data: dailyNotes, error: dailyNotesError } = await supabaseUtils.select('daily_notes');
+        if (!dailyNotesError && dailyNotes) {
+            db.dailyNotes = dailyNotes.map(note => ({
+                id: note.id,
+                date: note.date,
+                title: note.title,
+                type: note.type,
+                value: note.value,
+                content: note.content,
+                fileName: note.file_name,
+                fileData: note.file_data,
+                createdBy: note.created_by,
+                createdAt: note.created_at
+            }));
+        } else {
+            db.dailyNotes = [];
+        }
+
+        // Inicializar arrays vazios se necessário
+        if (!db.generalDocuments) db.generalDocuments = [];
+
+        // Atualizar contadores baseados nos dados carregados
+        db.nextClientId = db.clients.length > 0 ? Math.max(...db.clients.map(c => c.id)) + 1 : 1;
+        db.nextAppointmentId = db.appointments.length > 0 ? Math.max(...db.appointments.map(a => a.id)) + 1 : 1;
+        db.nextScheduleId = db.schedules.length > 0 ? Math.max(...db.schedules.map(s => s.id)) + 1 : 1;
+        db.nextStockItemId = db.stockItems.length > 0 ? Math.max(...db.stockItems.map(i => i.id)) + 1 : 6;
+        db.nextMovementId = db.stockMovements.length > 0 ? Math.max(...db.stockMovements.map(m => m.id)) + 1 : 1;
+        db.nextDailyNoteId = db.dailyNotes.length > 0 ? Math.max(...db.dailyNotes.map(n => n.id)) + 1 : 1;
+
+        console.log('Dados carregados do Supabase com sucesso');
+    } catch (error) {
+        console.error('Erro ao carregar do Supabase:', error);
+        // Em caso de erro, manter dados padrão
         db.clients = [];
         db.appointments = [];
-        db.schedules = []; // Also clear schedules to remove client dependencies
-        db.nextClientId = 1;
-        db.nextAppointmentId = 1;
-        db.nextScheduleId = 1;
-
-        saveDb(); // Save the cleared state to localStorage
-    } else {
-        // If no storedDb, the initial db object is already empty for clients and appointments.
-        // We just need to ensure no sample client data is added.
-        // Sample stock items and anamnesis types can remain if desired.
-        const sampleStockItems = [
-            { id: db.nextStockItemId++, name: 'Lápis HB', category: 'papelaria', quantity: 50, minStock: 10, unit: 'unidade', description: 'Lápis para desenhos e escrita', unitValue: 1.50 },
-            { id: db.nextStockItemId++, name: 'Papel A4', category: 'papelaria', quantity: 25, minStock: 5, unit: 'resma', description: 'Papel branco para impressão', unitValue: 20.00 },
-            { id: db.nextStockItemId++, name: 'Teste WISC-IV', category: 'testes', quantity: 3, minStock: 1, unit: 'kit', description: 'Escala de Inteligência Wechsler para Crianças', unitValue: 800.00 },
-            { id: db.nextStockItemId++, name: 'Blocos de Madeira', category: 'brinquedos', quantity: 8, minStock: 2, unit: 'caixa', description: 'Blocos coloridos para atividades lúdicas', unitValue: 45.00 },
-            { id: db.nextStockItemId++, name: 'Quebra-cabeça 100 peças', category: 'jogos', quantity: 15, minStock: 3, unit: 'pacote', description: 'Quebra-cabeças diversos temas', unitValue: 30.00 }
-        ];
-        
-        db.stockItems = sampleStockItems;
-
-        // Calculate nextUserId based on the hardcoded users if no storedDb existed
-        const maxUserId = db.users.reduce((maxId, user) => Math.max(maxId, user.id), 0);
-        db.nextUserId = Math.max(db.nextUserId, maxUserId + 1);
-
-        saveDb(); // Save the initial state with only users, anamnesis, and sample stock
+        db.schedules = [];
+        db.dailyNotes = [];
+        db.stockMovements = [];
+        if (!db.stockItems || db.stockItems.length === 0) {
+            const sampleStockItems = [
+                { id: 1, name: 'Lápis HB', category: 'papelaria', quantity: 50, minStock: 10, unit: 'unidade', description: 'Lápis para desenhos e escrita', unitValue: 1.50 },
+                { id: 2, name: 'Papel A4', category: 'papelaria', quantity: 25, minStock: 5, unit: 'resma', description: 'Papel branco para impressão', unitValue: 20.00 },
+                { id: 3, name: 'Teste WISC-IV', category: 'testes', quantity: 3, minStock: 1, unit: 'kit', description: 'Escala de Inteligência Wechsler para Crianças', unitValue: 800.00 },
+                { id: 4, name: 'Blocos de Madeira', category: 'brinquedos', quantity: 8, minStock: 2, unit: 'caixa', description: 'Blocos coloridos para atividades lúdicas', unitValue: 45.00 },
+                { id: 5, name: 'Quebra-cabeça 100 peças', category: 'jogos', quantity: 15, minStock: 3, unit: 'pacote', description: 'Quebra-cabeças diversos temas', unitValue: 30.00 }
+            ];
+            db.stockItems = sampleStockItems;
+        }
     }
 }
