@@ -2,11 +2,8 @@
 const SUPABASE_URL = 'https://ncjtfggvxvvasntozcqw.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5janRmZ2d2eHZ2YXNudG96Y3F3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0OTE3NDEsImV4cCI6MjA2NzA2Nzc0MX0.brzv2WhajL5o4ML16sYkCof_rgUfWN0RXQUQ72Yjil8'
 
-// Importa o cliente do Supabase
-import { createClient } from '@supabase/supabase-js'
-
-// Cria a instância do cliente Supabase
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Cria a instância do cliente Supabase usando a versão global (CDN)
+export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Configurações para diferentes ambientes
 const config = {
