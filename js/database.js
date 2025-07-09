@@ -181,6 +181,28 @@ export async function saveDb() {
             }
         }
 
+        // Salvar usuários
+        if (db.users.length > 0) {
+            for (const user of db.users) {
+                await supabaseUtils.insert('users', {
+                    id: user.id,
+                    username: user.username,
+                    password: user.password,
+                    name: user.name,
+                    role: user.role,
+                    email: user.email,
+                    phone: user.phone,
+                    cpf: user.cpf,
+                    address: user.address,
+                    institution: user.institution,
+                    graduation_period: user.graduationPeriod,
+                    education: user.education,
+                    discipline: user.discipline,
+                    change_history: JSON.stringify(user.changeHistory || [])
+                });
+            }
+        }
+
         console.log('Dados salvos no Supabase com sucesso');
     } catch (error) {
         console.error('Erro ao salvar no Supabase:', error);
@@ -336,6 +358,35 @@ export async function loadDb() {
             db.dailyNotes = [];
         }
 
+        // Carregar usuários do Supabase
+        const { data: supabaseUsers, error: usersError } = await supabaseUtils.select('users');
+        if (!usersError && supabaseUsers) {
+            // Mesclar usuários do Supabase com os usuários hardcoded
+            const hardcodedUsers = db.users;
+            const dynamicUsers = supabaseUsers.map(user => ({
+                id: user.id,
+                username: user.username,
+                password: user.password,
+                name: user.name,
+                role: user.role,
+                email: user.email,
+                phone: user.phone,
+                cpf: user.cpf,
+                address: user.address,
+                institution: user.institution,
+                graduationPeriod: user.graduation_period,
+                education: user.education,
+                discipline: user.discipline,
+                changeHistory: user.change_history ? JSON.parse(user.change_history) : []
+            }));
+
+            // Combinar usuários, priorizando os do Supabase se houver conflito de ID
+            const userMap = new Map();
+            hardcodedUsers.forEach(user => userMap.set(user.id, user));
+            dynamicUsers.forEach(user => userMap.set(user.id, user));
+            db.users = Array.from(userMap.values());
+        }
+
         // Inicializar arrays vazios se necessário
         if (!db.generalDocuments) db.generalDocuments = [];
 
@@ -346,6 +397,7 @@ export async function loadDb() {
         db.nextStockItemId = db.stockItems.length > 0 ? Math.max(...db.stockItems.map(i => i.id)) + 1 : 6;
         db.nextMovementId = db.stockMovements.length > 0 ? Math.max(...db.stockMovements.map(m => m.id)) + 1 : 1;
         db.nextDailyNoteId = db.dailyNotes.length > 0 ? Math.max(...db.dailyNotes.map(n => n.id)) + 1 : 1;
+        db.nextUserId = db.users.length > 0 ? Math.max(...db.users.map(u => u.id)) + 1 : 22;
 
         console.log('Dados carregados do Supabase com sucesso');
     } catch (error) {
